@@ -24,7 +24,7 @@ test('AI result leads into requirements without locking untouched defaults',asyn
  await page.getByRole('link',{name:'Compare solutions',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Needs verification — not confirmed recommendations'})).toBeVisible();
  await expect(page.getByText('We need a little more information',{exact:true}).first()).toBeVisible();
- await expect(page.getByRole('button',{name:/Choose this seller/})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:/Choose this plan/})).toHaveCount(0);
 });
 test('expired demo schedule refresh keeps user requirements and clears choice',async({page})=>{
  await page.goto('/preferences');await expect(page.locator('#budget')).toBeVisible();
@@ -81,7 +81,7 @@ test('a non-router AI request cannot silently produce router recommendations',as
  await page.goto('/');await page.getByLabel('Describe your problem',{exact:true}).fill('I need a washing machine.');await page.getByRole('button',{name:'Analyze request',exact:true}).click();
  await expect(page.getByRole('link',{name:'Review and confirm requirements'})).toBeVisible();
  await page.getByRole('link',{name:'Step 3: Compare solutions',exact:true}).click();await expect(page.getByRole('heading',{name:'Please confirm this is a router request'})).toBeVisible();
- await expect(page.getByRole('button',{name:/Choose this seller/})).toHaveCount(0);
+ await expect(page.getByRole('button',{name:/Choose this plan/})).toHaveCount(0);
  await page.getByRole('button',{name:'Discard this analysis and set up a router request manually'}).click();
  const state=await page.evaluate(()=>JSON.parse(sessionStorage.getItem('matchcart-request-v1')!));expect(state.extraction).toBeNull();expect(state.requirements.confirmed).toBe(false);
 });
@@ -105,7 +105,7 @@ test('manual shopping journey is operable with the keyboard alone',async({page})
  await tabTo(page.getByLabel('I confirm the technical answers'));await page.keyboard.press('Space');
  await tabTo(page.getByRole('button',{name:'Save and confirm preferences'}));await page.keyboard.press('Enter');await expect(page.locator('form').getByRole('status')).toContainText('Preferences saved');
  await tabTo(page.getByRole('link',{name:'Compare solutions',exact:true}));await page.keyboard.press('Enter');
- const choose=page.getByRole('button',{name:'Choose this seller, delivery and Demo technician Alex',exact:true}).first();await expect(choose).toBeVisible();await tabTo(choose);await page.keyboard.press('Space');
+ const choose=page.getByRole('button',{name:/Choose this plan.*Demo technician Alex/,exact:true}).first();await expect(choose).toBeVisible();await tabTo(choose);await page.keyboard.press('Space');
  await tabTo(page.getByRole('link',{name:'Review selected solution'}));await page.keyboard.press('Enter');await expect(page).toHaveURL(/solution$/);await expect(page.getByText('Total including test tax',{exact:true})).toBeVisible();
 });
 

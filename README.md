@@ -59,3 +59,5 @@ Public-service acceptance is pending until real credentials, a deployment hostna
 Final local audit: docs/LOCAL_AUDIT_STAGE4.md. Public service onboarding and deployment are deliberately deferred by the user; existing protection remains in place.
 
 Code review follow-up on b71564b: refreshed test schedules use the next processing day after the 23:00 New York cutoff. COMPATIBLE is based on user-confirmed answers and fictional catalog specs, not independent certification. AI question-topic links open the corresponding Preferences field, including Advanced Settings.
+
+Stage 5 UI/UX report and visual checks: docs/STAGE5_UI_UX.md. Three-minute local demo outline: docs/DEMO_RUNBOOK.md. Visual baselines are versioned under tests/e2e/visual.spec.ts-snapshots; review exports are in ignored artifacts/stage5.

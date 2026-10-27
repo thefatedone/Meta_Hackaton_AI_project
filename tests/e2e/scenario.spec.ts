@@ -29,7 +29,7 @@ test('preferences persist and drive a selectable full solution',async({page})=>{
  await expect(page.getByLabel('I confirm the technical answers')).toBeChecked();
  await page.getByRole('link',{name:'Compare solutions',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Compatible complete solutions'})).toBeVisible();
- const choose=page.getByRole('button',{name:'Choose this seller, delivery and Demo technician Alex'});
+ const choose=page.getByRole('button',{name:/Choose this plan.*Demo technician Alex/});
  await expect(choose).toHaveCount(1);
  await choose.click();
  await page.getByRole('link',{name:'Review selected solution'}).click();

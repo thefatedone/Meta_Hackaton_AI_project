@@ -9,3 +9,6 @@ next-env.d.ts
 
 playwright-report/
 test-results/
+
+# Local UI review exports (regression baselines remain versioned).
+artifacts/
