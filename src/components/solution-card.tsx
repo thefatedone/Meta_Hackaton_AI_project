@@ -1,0 +1,8 @@
+'use client';
+import type { Solution } from '../recommendations/engine';
+import { displayTime } from '../recommendations/time';
+export const usd=(cents:number)=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(cents/100);
+export function SolutionCard({solution:s,choose}:{solution:Solution;choose?:()=>void}){return <article className="panel"><p className="badge">TEST DATA · {s.compatibility.status}</p><h3>{s.product.name}</h3><p>{s.seller.name} · {s.technician?.name??'Self installation'}</p><dl>{s.lines.map(l=><div key={l.label}><dt>{l.label}</dt><dd>{usd(l.cents)}</dd></div>)}<dt>{s.totalCents===null?'Known costs — incomplete total':'Total including test tax'}</dt><dd><strong>{usd(s.totalCents??s.lines.reduce((sum,line)=>sum+line.cents,0))}</strong></dd><dt>Delivery by</dt><dd>{displayTime(s.deliveryAt)}</dd><dt>Installation interval</dt><dd>{s.slot?displayTime(s.slot.startsAt)+' – '+displayTime(s.slot.endsAt):'Not requested'}</dd><dt>Warranty</dt><dd>{s.offer.warranty??'Not specified'}</dd><dt>Support</dt><dd>{s.offer.support??'Not specified'}</dd></dl>
+ {s.uncertainties.length>0&&<><h4>Cost or requirements need verification</h4><ul>{s.uncertainties.map(x=><li key={x}>{x}</li>)}</ul></>}
+ <details><summary>Compatibility checks and explanation</summary><ul>{s.compatibility.checks.map(c=><li key={c.field}>{c.field}: {c.status} — {c.reason}</li>)}{s.reasons.map(x=><li key={x}>{x}</li>)}</ul></details>
+ {choose&&<button type="button" className="button" onClick={choose}>Choose this seller, delivery and {s.technician?.name??'self-installation'}</button>}</article>;}

@@ -1,0 +1,39 @@
+'use client';
+import { useState, type FormEvent } from 'react';
+import Link from 'next/link';
+import { useRequest } from '../state/request-context';
+import { requirementsSchema } from '../domain/requirements';
+import { localDate } from '../recommendations/time';
+export function PreferencesForm(){
+ const {state,ready,edit,reset}=useRequest();const [message,setMessage]=useState('');
+ if(!ready)return <p role="status">Loading preferences…</p>;
+ const r=state.requirements;
+ function save(e:FormEvent<HTMLFormElement>){e.preventDefault();const f=new FormData(e.currentTarget);const str=(k:string)=>String(f.get(k)??'');const num=(k:string)=>str(k)===''?null:Number(str(k));
+ const parsed=requirementsSchema.safeParse({budgetCents:num('budget')===null?null:Math.round(Number(str('budget'))*100),currency:str('currency'),mode:str('mode'),zip:str('zip'),installation:f.has('installation'),deliveryDate:str('deliveryDate')||null,deliveryMandatory:f.has('deliveryMandatory'),installationDate:str('installationDate')||null,installationMandatory:f.has('installationMandatory'),ispRestrictions:str('ispRestrictions'),protocol:str('protocol'),upstream:str('upstream'),ethernet:str('ethernet'),vlan:str('vlan'),speedMbps:num('speedMbps'),lanPorts:num('lanPorts'),band:str('band'),cable:str('cable'),confirmed:f.has('confirmed')});
+ if(!parsed.success){setMessage('Please correct the fields. Use USD cents, positive speeds and a five-digit ZIP.');return;} edit(parsed.data);setMessage('Preferences saved. Previous solution selection cleared. You can compare solutions now.');}
+ return <><p>Values suggested by AI are provisional. Your saved changes override later AI suggestions. Default demo budget: $150; ZIP: 10001. Confirm them below.</p>
+ {state.extraction&&<section className="panel"><h2>AI observations — not confirmed</h2><p>{state.extraction.summary}</p><ul>{state.extraction.technicalParameters.map((p,i)=><li key={i}>{p.name}: {p.value} ({p.source}, unverified)</li>)}</ul><p>Use these observations to answer the fields below. We do not automatically treat a label as proof of your connection setup.</p><p>Requested delivery: {state.extraction.delivery.requested??'Not specified'}. Choose the exact New York date below.</p></section>}
+ <form key={JSON.stringify(r)} className="panel" onSubmit={save}><h2>Budget and timing</h2>
+ <label htmlFor="budget">Maximum total budget (USD)</label><input id="budget" name="budget" type="number" min="0" max="1000000" step="0.01" defaultValue={r.budgetCents===null?'':r.budgetCents/100}/>
+ <label htmlFor="currency">Budget currency</label><select id="currency" name="currency" defaultValue={r.currency}><option value="USD">USD</option><option value="unsupported">Other / needs clarification</option></select>
+ <label htmlFor="zip">Delivery ZIP code</label><input id="zip" name="zip" required pattern="[0-9]{5}" maxLength={5} autoComplete="postal-code" defaultValue={r.zip}/>
+ <label htmlFor="mode">Recommendation mode</label><select id="mode" name="mode" defaultValue={r.mode}><option value="budget">Budget Mode — lowest full cost</option><option value="technical">Best Technical Solution — port speed headroom, within budget</option></select>
+ <label className="choice"><input name="installation" type="checkbox" defaultChecked={r.installation}/>Include installation</label>
+ <p>All dates and intervals use New York time (America/New_York). Tomorrow relative to this demo session: {localDate(state.catalogTime,1)}. Delivery and installation deadlines are separate.</p>
+ <label htmlFor="deliveryDate">Deliver by (end of day)</label><input type="date" id="deliveryDate" name="deliveryDate" defaultValue={r.deliveryDate??''}/><label className="choice"><input type="checkbox" name="deliveryMandatory" defaultChecked={r.deliveryMandatory}/>Delivery deadline is mandatory</label>
+ <label htmlFor="installationDate">Finish installation by (end of day)</label><input type="date" id="installationDate" name="installationDate" defaultValue={r.installationDate??''}/><label className="choice"><input type="checkbox" name="installationMandatory" defaultChecked={r.installationMandatory}/>Installation deadline is mandatory</label>
+ <h2>Confirm your connection</h2><p>Supported MVP: a separate modem or optical terminal stays in place and provides Ethernet to the new router. Ask your provider if you are unsure. Do not enter passwords.</p>
+ <label htmlFor="upstream">What equipment stays connected to your provider?</label><select id="upstream" name="upstream" defaultValue={r.upstream}><option value="unknown">I do not know</option><option value="modem">Separate modem</option><option value="ont">Optical terminal (ONT)</option><option value="gateway">Combined provider gateway</option><option value="direct-dsl-coax">DSL/coax cable directly — modem replacement needed</option></select>
+ <label htmlFor="ethernet">Does it provide an Ethernet cable connection to the router?</label><select id="ethernet" name="ethernet" defaultValue={r.ethernet}><option value="unknown">I do not know</option><option value="yes">Yes</option><option value="no">No</option></select>
+ <label htmlFor="protocol">Internet connection method (ask your provider)</label><select id="protocol" name="protocol" defaultValue={r.protocol}><option value="unknown">I do not know</option><option value="dhcp">Automatic / DHCP</option><option value="pppoe">PPPoE (provider account)</option><option value="static">Static IP</option></select>
+ <label htmlFor="vlan">Does your provider require VLAN tagging?</label><select id="vlan" name="vlan" defaultValue={r.vlan}><option value="unknown">I do not know</option><option value="not-required">Provider confirms it is not required</option><option value="required">Provider confirms it is required</option></select>
+ <label htmlFor="ispRestrictions">Any other provider requirements (for example device registration, IPTV or special authentication)?</label><select id="ispRestrictions" name="ispRestrictions" defaultValue={r.ispRestrictions}><option value="unknown">I do not know</option><option value="none">Provider confirms no other requirements</option><option value="special">Yes — provider-specific verification needed</option></select>
+ <label htmlFor="speedMbps">Minimum Ethernet port speed you need (Mbps)</label><input id="speedMbps" name="speedMbps" type="number" min="1" max="10000" step="1" defaultValue={r.speedMbps??''}/>
+ <label htmlFor="lanPorts">Number of wired device ports needed (0 if none)</label><input id="lanPorts" name="lanPorts" type="number" min="0" max="32" step="1" defaultValue={r.lanPorts??''}/>
+ <label htmlFor="band">Required Wi-Fi band</label><select id="band" name="band" defaultValue={r.band}><option value="unknown">I do not know</option><option value="2.4">2.4 GHz</option><option value="5">5 GHz</option><option value="6">6 GHz</option></select>
+ <label htmlFor="cable">Ethernet cable for the new router</label><select id="cable" name="cable" defaultValue={r.cable}><option value="unknown">Not sure — cost needs verification</option><option value="have">I already have a suitable cable</option><option value="need">Include a demo cable ($5)</option></select>
+ <label className="choice"><input type="checkbox" name="confirmed" defaultChecked={r.confirmed}/>I confirm the technical answers above. Unknown answers must still be verified.</label>
+ <p>Confirmation is based on your information, not an independent inspection. No guarantee of Wi-Fi coverage or real throughput. New hardware uses its supplied power adapter.</p>
+ <button className="button" type="submit">Save and confirm preferences</button><p role="status">{message}</p>
+ </form><Link className="button" href="/comparison">Compare solutions</Link><p><button type="button" onClick={()=>{reset();setMessage('Demo session reset with new dates.');}}>Reset session and regenerate demo dates</button></p></>;
+}
