@@ -14,13 +14,14 @@ test('uncertain image must request clarification', () => assert.throws(() => val
 test('missing key makes no upstream request', async () => { await assert.rejects(analyzeWithMeta({text:'router'}, {...config,apiKey:''}, async()=>{throw new Error('Must not call');}), (e: unknown) => e instanceof AnalysisError && e.code === 'NOT_CONFIGURED'); });
 test('uses official endpoint, JSON schema and image payload', async () => {
  const imageResult={...result,imageAssessment:'uncertain'};
- const output=await analyzeWithMeta({text:'router',imageDataUrl:'data:image/jpeg;base64,eA=='},config,async(url,init)=>{ assert.equal(url,'https://api.meta.ai/v1/chat/completions'); const body=JSON.parse(init?.body as string); assert.equal(body.response_format.type,'json_schema'); assert.equal(body.messages[1].content[1].type,'image_url'); return completion(imageResult); });
+ const output=await analyzeWithMeta({text:'router',imageDataUrl:'data:image/jpeg;base64,eA=='},config,async(url,init)=>{ assert.equal(url,'https://api.meta.ai/v1/chat/completions'); const body=JSON.parse(init?.body as string); assert.equal(body.response_format.type,'json_schema'); assert.equal(body.reasoning_effort,'low'); assert.equal(body.max_completion_tokens,4096); assert.equal(body.messages[1].content[1].type,'image_url'); return completion(imageResult); });
  assert.equal(output.imageAssessment,'uncertain');
 });
 test('maps access, rate-limit and upstream errors without leaking body', async () => { for(const [status,code] of [[401,'ACCESS'],[403,'ACCESS'],[429,'RATE_LIMIT'],[500,'UPSTREAM']] as const) await assert.rejects(analyzeWithMeta({text:'router'},config,async()=>new Response('secret upstream body',{status})),(e: unknown)=>e instanceof AnalysisError && e.code===code && !e.message.includes('secret')); });
 test('handles timeout, network, malformed and truncated output', async () => {
  for(const name of ['TimeoutError','Error']) await assert.rejects(analyzeWithMeta({text:'router'},config,async()=>{throw new DOMException('private',name);}), (e: unknown)=>e instanceof AnalysisError && e.code===(name==='TimeoutError'?'TIMEOUT':'NETWORK'));
- for(const response of [completion(result,'length'),completion({bad:true}),new Response('invalid json')]) await assert.rejects(analyzeWithMeta({text:'router'},config,async()=>response),(e: unknown)=>e instanceof AnalysisError && e.code==='INVALID_RESPONSE');
+ await assert.rejects(analyzeWithMeta({text:'router'},config,async()=>completion(result,'length')),(e:unknown)=>e instanceof AnalysisError && e.code==='INCOMPLETE_RESPONSE');
+ for(const response of [completion({bad:true}),new Response('invalid json')]) await assert.rejects(analyzeWithMeta({text:'router'},config,async()=>response),(e: unknown)=>e instanceof AnalysisError && e.code==='INVALID_RESPONSE');
 });
 function request(form: FormData) { return new Request('http://localhost/api/analyze',{method:'POST',body:form}); }
 test('empty request rejected before AI', async()=> { const r=await handleAnalysis(request(new FormData()),async()=>{throw new Error('Must not call');}); assert.equal(r.status,400); });

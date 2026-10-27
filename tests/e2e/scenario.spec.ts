@@ -1,17 +1,19 @@
+import AxeBuilder from '@axe-core/playwright';
 import {test,expect} from '@playwright/test';
 import {DateTime} from 'luxon';
 test('preferences persist and drive a selectable full solution',async({page})=>{
  await page.goto('/preferences');
  await page.getByLabel('Maximum total budget (USD)').fill('150');
  await page.getByLabel('Delivery ZIP code').fill('10001');
- await page.getByLabel('What equipment stays').selectOption('ont');
+ await page.locator('#upstream').selectOption('ont');
  await page.getByLabel('Does it provide').selectOption('yes');
- await page.getByLabel('Internet connection method').selectOption('dhcp');
+ await page.getByText('Advanced Settings — connection details from your provider',{exact:true}).click();
+ await page.locator('#protocol').selectOption('dhcp');
  await page.getByLabel('Does your provider require').selectOption('not-required');
  await page.getByLabel('Any other provider requirements').selectOption('none');
- await page.getByLabel('Minimum Ethernet port speed').fill('1000');
- await page.getByLabel('Number of wired device ports').fill('2');
- await page.getByLabel('Required Wi-Fi band',{exact:true}).selectOption('5');
+ await page.locator('#speedMbps').fill('1000');
+ await page.locator('#lanPorts').fill('2');
+ await page.locator('#band').selectOption('5');
  await page.getByLabel('Ethernet cable for').selectOption('need');
  const tomorrow=DateTime.now().setZone('America/New_York').plus({days:1}).toISODate()!;
  await page.getByLabel('Deliver by (end of day)').fill(tomorrow);
@@ -22,7 +24,7 @@ test('preferences persist and drive a selectable full solution',async({page})=>{
  await page.getByRole('button',{name:'Save and confirm preferences'}).click();
  await expect(page.getByRole('status')).toContainText('Preferences saved');
  await page.reload();
- await expect(page.getByLabel('Minimum Ethernet port speed')).toHaveValue('1000');
+ await expect(page.locator('#speedMbps')).toHaveValue('1000');
  await expect(page.getByLabel('I confirm the technical answers')).toBeChecked();
  await page.getByRole('link',{name:'Compare solutions',exact:true}).click();
  await expect(page.getByRole('heading',{name:'Compatible complete solutions'})).toBeVisible();
@@ -33,6 +35,9 @@ test('preferences persist and drive a selectable full solution',async({page})=>{
  await expect(page).toHaveURL(/\/solution$/);
  await expect(page.getByText('$135.16',{exact:true})).toBeVisible();
  await expect(page.getByText('Installation — Demo technician Alex',{exact:true})).toBeVisible();
+ const accessibility=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();expect(accessibility.violations).toEqual([]);
+ await page.reload();
+ await expect(page.getByText('$135.16',{exact:true})).toBeVisible();
  await page.getByRole('link',{name:'Edit requirements',exact:true}).click();
  await page.getByLabel('Maximum total budget (USD)').fill('50');
  await page.getByRole('button',{name:'Save and confirm preferences'}).click();

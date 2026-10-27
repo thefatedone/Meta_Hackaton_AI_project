@@ -13,7 +13,7 @@ export async function analyzeWithMeta(input: { text: string; imageDataUrl?: stri
  try {
  response = await transport(config.baseUrl + '/chat/completions', {
  method: 'POST', headers: { Authorization: 'Bearer ' + config.apiKey, 'Content-Type': 'application/json' }, signal: AbortSignal.timeout(45000), redirect: 'error', cache: 'no-store',
- body: JSON.stringify({ model: config.model, messages: [{ role: 'system', content: instructions }, { role: 'user', content }], response_format: { type: 'json_schema', json_schema: { name: 'MatchCartRequirements', schema: extractionJsonSchema } } })
+ body: JSON.stringify({ model: config.model, max_completion_tokens: 4096, reasoning_effort: 'low', messages: [{ role: 'system', content: instructions }, { role: 'user', content }], response_format: { type: 'json_schema', json_schema: { name: 'MatchCartRequirements', schema: extractionJsonSchema } } })
  });
  } catch (error) {
  if (error instanceof Error && ['TimeoutError','AbortError'].includes(error.name)) throw new AnalysisError('TIMEOUT', 'Meta AI took too long. Please try again.', 504);
@@ -27,7 +27,8 @@ export async function analyzeWithMeta(input: { text: string; imageDataUrl?: stri
  try {
  const envelope = await response.json();
  const choice = envelope.choices?.[0];
+ if(choice?.finish_reason==='length')throw new AnalysisError('INCOMPLETE_RESPONSE','Meta could not finish the analysis within the response limit. Please retry with a clearer photo or a shorter request.',502);
  if (choice?.finish_reason !== 'stop' || typeof choice.message?.content !== 'string' || choice.message.refusal) throw new Error('Incomplete or refused response');
  return validateExtraction(JSON.parse(choice.message.content), Boolean(input.imageDataUrl));
- } catch { throw new AnalysisError('INVALID_RESPONSE', 'Meta returned an incomplete or invalid result. Please retry or provide clearer information.', 502); }
+ } catch (error) { if(error instanceof AnalysisError)throw error;throw new AnalysisError('INVALID_RESPONSE', 'Meta returned an incomplete or invalid result. Please retry or provide clearer information.', 502); }
 }

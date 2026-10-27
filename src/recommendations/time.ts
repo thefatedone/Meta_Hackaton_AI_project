@@ -13,3 +13,7 @@ export function deadline(date: string | null) {
  return parsed.endOf('day').toMillis();
 }
 export function displayTime(iso: string) { return DateTime.fromISO(iso, { zone: DEMO_ZONE }).toFormat('MMM dd, yyyy HH:mm ZZZZ'); }
+
+export function isDemoExpired(anchor:string,now:string){
+ return Date.parse(now)>Date.parse(localInstant(anchor,0,23));
+}

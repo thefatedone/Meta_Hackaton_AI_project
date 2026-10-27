@@ -1,0 +1,18 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {newState,editRequirements,applyExtraction,restoreState,refreshSchedule} from '../src/state/requirements-store';
+import {isDemoExpired} from '../src/recommendations/time';
+import type {ExtractedRequirements} from '../src/domain/extraction';
+const now='2026-10-27T16:00:00.000Z';
+const ai:ExtractedRequirements={category:'wifi-router',budget:{amountCents:20000,currency:'USD',includes:['device']},mode:'technical',delivery:{requested:'tomorrow',mandatory:false},installationRequired:false,deviceModel:'Example',technicalParameters:[{name:'WAN',value:'DHCP',source:'image',verification:'unverified'}],imageAssessment:'readable',clarificationQuestions:['Please confirm the provider setup.'],summary:'Example extraction.'};
+test('unchanged form save locks no default fields and preserves selected solution',()=>{const state={...newState(now),selectedId:'choice'};const saved=editRequirements(state,{...state.requirements});assert.deepEqual(saved.edited,[]);assert.equal(saved.selectedId,'choice');assert.equal(applyExtraction(saved,ai).requirements.budgetCents,20000);});
+test('only changed keys or explicitly confirmed values override AI',()=>{let state=newState(now);state=editRequirements(state,{...state.requirements,budgetCents:12000});assert.deepEqual(state.edited,['budgetCents']);let applied=applyExtraction(state,ai);assert.equal(applied.requirements.budgetCents,12000);assert.equal(applied.requirements.mode,'technical');state=editRequirements(newState(now),{},['budgetCents']);applied=applyExtraction(state,ai);assert.equal(applied.requirements.budgetCents,15000);});
+test('AI image facts cannot attest technical requirements',()=>{const s=applyExtraction(newState(now),ai);assert.equal(s.requirements.confirmed,false);assert.equal(s.requirements.protocol,'unknown');assert.equal(s.extraction?.technicalParameters[0].verification,'unverified');});
+test('new technical edit removes old confirmation unless freshly attested',()=>{let state=editRequirements(newState(now),{protocol:'dhcp',confirmed:true},['protocol']);state=editRequirements(state,{protocol:'pppoe'});assert.equal(state.requirements.confirmed,false);});
+test('version 1 progress migrates without old blanket default locks',()=>{const old={...newState(now),version:1,edited:Object.keys(newState(now).requirements),selectedId:'old-choice'};const restored=restoreState(JSON.stringify(old),now);assert.equal(restored.version,2);assert.equal(restored.selectedId,'old-choice');assert.ok(!restored.edited.includes('budgetCents'));assert.equal(restored.catalogTime,now);});
+test('expired catalog refresh preserves budget, deadlines and confirmed facts, clears selection',()=>{let s=editRequirements(newState(now),{budgetCents:12000,protocol:'dhcp',confirmed:true,deliveryDate:'2026-10-28'});s={...s,selectedId:'old'};const later='2026-10-29T16:00:00.000Z';assert.equal(isDemoExpired(s.catalogTime,later),true);const refreshed=refreshSchedule(s,later);assert.equal(refreshed.requirements.budgetCents,12000);assert.equal(refreshed.requirements.deliveryDate,'2026-10-28');assert.equal(refreshed.requirements.confirmed,true);assert.equal(refreshed.selectedId,null);assert.equal(isDemoExpired(refreshed.catalogTime,later),false);});
+
+test('impossible calendar dates cannot enter requirements or be applied from AI',()=>{
+ const state=newState(now);const result=applyExtraction(state,{...ai,delivery:{requested:'2026-02-30',mandatory:true}});assert.equal(result.requirements.deliveryDate,null);
+ assert.equal(restoreState(JSON.stringify({...state,requirements:{...state.requirements,deliveryDate:'2026-02-30'}}),now).requirements.deliveryDate,null);
+});

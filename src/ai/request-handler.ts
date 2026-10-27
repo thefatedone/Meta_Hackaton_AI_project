@@ -4,14 +4,15 @@ import type { ExtractedRequirements } from '../domain/extraction';
 export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const MAX_BODY_BYTES = MAX_IMAGE_BYTES + 64 * 1024;
 const reply = (data: unknown, status = 200) => Response.json(data, { status, headers: { 'Cache-Control': 'no-store' } });
-export async function handleAnalysis(request: Request, analyze: (input: { text: string; imageDataUrl?: string }) => Promise<ExtractedRequirements>) {
+export async function handleAnalysis(request: Request, analyze: (input: { text: string; imageDataUrl?: string }) => Promise<ExtractedRequirements>, authorize?: (form:FormData)=>Promise<void>, expectedOrigin?: string) {
  try {
  const origin = request.headers.get('origin');
  // Next may normalize request.url to its bind address. Host preserves the address used by the browser.
  const requestUrl = new URL(request.url);
  const host = request.headers.get('host') ?? requestUrl.host;
  let sameOrigin = !origin;
- try { sameOrigin = !origin || new URL(origin).origin === new URL(requestUrl.protocol + '//' + host).origin; }
+ // In production the configured public HTTPS origin is authoritative behind TLS proxies.
+ try { sameOrigin = !origin || new URL(origin).origin === (expectedOrigin ?? new URL(requestUrl.protocol + '//' + host).origin); }
  catch { sameOrigin = false; }
  if (!sameOrigin || request.headers.get('sec-fetch-site') === 'cross-site') throw new AnalysisError('ORIGIN', 'Cross-origin requests are not allowed.', 403);
  if (!request.headers.get('content-type')?.startsWith('multipart/form-data')) throw new AnalysisError('INPUT', 'Use a multipart form request.', 415);
@@ -43,6 +44,7 @@ export async function handleAnalysis(request: Request, analyze: (input: { text: 
  } catch { throw new AnalysisError('IMAGE_INVALID', 'Image cannot be read. Use a valid, non-animated JPEG, PNG or WebP under 20 megapixels.', 415); }
  }
  if (!text && !imageDataUrl) throw new AnalysisError('INPUT', 'Describe your problem or attach a device photo.', 400);
+ if (authorize) await authorize(form);
  const result = await analyze({ text, imageDataUrl });
  return reply({ status: result.clarificationQuestions.length ? 'needs_clarification' : 'success', result });
  } catch (error) {
