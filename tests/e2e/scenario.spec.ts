@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import {test,expect} from '@playwright/test';
-import {DateTime} from 'luxon';
+import {localDate,demoScheduleAnchor} from '../../src/recommendations/time';
 test('preferences persist and drive a selectable full solution',async({page})=>{
  await page.goto('/preferences');
  await page.getByLabel('Maximum total budget (USD)').fill('150');
@@ -15,7 +15,8 @@ test('preferences persist and drive a selectable full solution',async({page})=>{
  await page.locator('#lanPorts').fill('2');
  await page.locator('#band').selectOption('5');
  await page.getByLabel('Ethernet cable for').selectOption('need');
- const tomorrow=DateTime.now().setZone('America/New_York').plus({days:1}).toISODate()!;
+ const anchor=await page.evaluate(()=>JSON.parse(sessionStorage.getItem('matchcart-request-v1')!).catalogTime as string);
+ const tomorrow=localDate(demoScheduleAnchor(anchor),1);
  await page.getByLabel('Deliver by (end of day)').fill(tomorrow);
  await page.getByLabel('Finish installation by (end of day)').fill(tomorrow);
  await page.getByLabel('Delivery deadline is mandatory').check();
@@ -34,6 +35,7 @@ test('preferences persist and drive a selectable full solution',async({page})=>{
  await page.getByRole('link',{name:'Review selected solution'}).click();
  await expect(page).toHaveURL(/\/solution$/);
  await expect(page.getByText('$135.16',{exact:true})).toBeVisible();
+ await expect(page.getByText('Compatible with the answers you confirmed and the specifications in this demo catalog. This is not independent equipment certification.',{exact:true})).toBeVisible();
  await expect(page.getByText('Installation — Demo technician Alex',{exact:true})).toBeVisible();
  const accessibility=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22aa']).analyze();expect(accessibility.violations).toEqual([]);
  await page.reload();

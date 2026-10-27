@@ -29,7 +29,7 @@ export function recommend(input: Requirements, catalog: Catalog, now: string): E
  price(delivery.price.amountCents);
  const arrival = Date.parse(delivery.arrivesAt ?? '');
  if(!delivery.serviceZipCodes.includes(r.zip)) {reject(label,['Delivery unavailable for this ZIP.']);continue;}
- if(!Number.isFinite(arrival) || arrival <= current || Date.parse(delivery.orderBy ?? '') < current || !Number.isFinite(Date.parse(delivery.orderBy ?? ''))) {reject(label,['Delivery schedule is missing, expired or past its order cutoff.']);continue;}
+ if(!Number.isFinite(arrival) || arrival <= current || Date.parse(delivery.orderBy ?? '') <= current || !Number.isFinite(Date.parse(delivery.orderBy ?? ''))) {reject(label,['Delivery schedule is missing, expired or past its order cutoff.']);continue;}
  if(r.deliveryMandatory && deliveryLimit !== null && arrival > deliveryLimit) {reject(label,['Mandatory delivery deadline cannot be met.']);continue;}
  const choices: {technician: Technician | null; slot: Technician['slots'][number] | null}[] = [];
  if(!r.installation) choices.push({technician:null,slot:null});

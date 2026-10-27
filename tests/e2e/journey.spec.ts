@@ -2,6 +2,7 @@ import {test,expect} from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 const fixture={category:'wifi-router',budget:{amountCents:18000,currency:'USD',includes:['device','delivery','installation']},mode:null,delivery:{requested:'tomorrow',mandatory:true},installationRequired:true,deviceModel:'Example router',technicalParameters:[{name:'model',value:'Example router',source:'image',verification:'unverified'}],imageAssessment:'readable',clarificationQuestions:['What connection does your provider use?'],summary:'UI test fixture: router replacement, $180 total.'};
 test('AI result leads into requirements without locking untouched defaults',async({page})=>{
+ await page.clock.setFixedTime(new Date('2026-10-27T16:00:00.000Z'));
  // Explicit UI fixture only. The production adapter is never replaced; live Meta is checked separately.
  await page.route('**/api/analyze',route=>route.fulfill({json:{status:'needs_clarification',result:fixture}}));
  await page.goto('/preferences');
@@ -106,4 +107,19 @@ test('manual shopping journey is operable with the keyboard alone',async({page})
  await tabTo(page.getByRole('link',{name:'Compare solutions',exact:true}));await page.keyboard.press('Enter');
  const choose=page.getByRole('button',{name:'Choose this seller, delivery and Demo technician Alex',exact:true}).first();await expect(choose).toBeVisible();await tabTo(choose);await page.keyboard.press('Space');
  await tabTo(page.getByRole('link',{name:'Review selected solution'}));await page.keyboard.press('Enter');await expect(page).toHaveURL(/solution$/);await expect(page.getByText('Total including test tax',{exact:true})).toBeVisible();
+});
+
+test('AI question topics open the relevant Preferences field and advanced settings',async({page})=>{
+ await page.route('**/api/analyze',route=>route.fulfill({json:{status:'needs_clarification',result:fixture}}));
+ await page.goto('/');await page.locator('#description').fill('Router replacement');await page.getByRole('button',{name:'Analyze request',exact:true}).click();
+ await page.getByRole('link',{name:'Provider connection method and other internet settings',exact:true}).click();
+ await expect(page).toHaveURL(/preferences#protocol$/);await expect(page.locator('#protocol')).toBeFocused();await expect(page.locator('.advanced')).toHaveAttribute('open','');await expect(page.locator('#budget')).toHaveValue('180');
+});
+test('late-night schedule refresh survives midnight without an expired refresh loop',async({page})=>{
+ await page.clock.setFixedTime(new Date('2026-10-28T02:30:00.000Z'));await page.goto('/preferences');await expect(page.locator('#budget')).toBeVisible();
+ await page.clock.setFixedTime(new Date('2026-10-28T03:30:00.000Z'));await page.reload();await expect(page.getByText('Your test schedule has expired',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'Refresh test schedules'}).click();await expect(page.getByText('Your test schedule has expired',{exact:true})).toHaveCount(0);
+ await expect(page.getByText(/Earliest express test delivery date: 2026-10-29/)).toBeVisible();
+ await page.clock.setFixedTime(new Date('2026-10-28T04:00:00.000Z'));await page.reload();await expect(page.getByText('Your test schedule has expired',{exact:true})).toHaveCount(0);
+ await page.getByRole('link',{name:'Compare solutions',exact:true}).click();await expect(page.getByText('TEST DATA · NEEDS_VERIFICATION',{exact:true}).first()).toBeVisible();await expect(page.getByText('Delivery schedule is missing, expired or past its order cutoff.',{exact:false})).toHaveCount(0);
 });

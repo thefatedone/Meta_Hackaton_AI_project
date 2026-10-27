@@ -14,6 +14,15 @@ export function deadline(date: string | null) {
 }
 export function displayTime(iso: string) { return DateTime.fromISO(iso, { zone: DEMO_ZONE }).toFormat('MMM dd, yyyy HH:mm ZZZZ'); }
 
+// After the daily cutoff, the next processing day anchors ALL generated slots.
+export function demoScheduleAnchor(now:string){
+ const local=DateTime.fromISO(now,{zone:DEMO_ZONE});
+ if(!local.isValid)throw new Error('Invalid demo date');
+ return local.startOf('day').plus({days:local.hour>=23?1:0}).toUTC().toISO()!;
+}
+export function demoOrderCutoff(anchor:string){
+ return localInstant(demoScheduleAnchor(anchor),0,23);
+}
 export function isDemoExpired(anchor:string,now:string){
- return Date.parse(now)>Date.parse(localInstant(anchor,0,23));
+ return Date.parse(now)>=Date.parse(demoOrderCutoff(anchor));
 }

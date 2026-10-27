@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRequest } from '../state/request-context';
 import { requirementsSchema } from '../domain/requirements';
 import { technicalKeys, preferenceKeys } from '../state/requirements-store';
-import { localDate } from '../recommendations/time';
+import { localDate, demoScheduleAnchor } from '../recommendations/time';
 export function PreferencesForm(){
  const {state,ready,edit}=useRequest();const [message,setMessage]=useState('');const [error,setError]=useState('');const [dirty,setDirty]=useState(false);const errorRef=useRef<HTMLParagraphElement>(null);
  useEffect(()=>{
@@ -19,6 +19,19 @@ export function PreferencesForm(){
   window.addEventListener('beforeunload',warn);document.addEventListener('click',protectNavigation,true);
   return()=>{window.removeEventListener('beforeunload',warn);document.removeEventListener('click',protectNavigation,true);};
  },[dirty]);
+ useEffect(()=>{
+  if(!ready)return;
+  const focusLinkedField=()=>{
+   const id=window.location.hash.slice(1);
+   if(!['budget','protocol','speedMbps'].includes(id))return;
+   const field=document.getElementById(id);
+   const advanced=field?.closest('details');if(advanced)advanced.open=true;
+   field?.focus();
+  };
+  const frame=requestAnimationFrame(focusLinkedField);
+  window.addEventListener('hashchange',focusLinkedField);
+  return()=>{cancelAnimationFrame(frame);window.removeEventListener('hashchange',focusLinkedField);};
+ },[ready]);
  if(!ready)return <p role="status">Loading preferences…</p>;
  const r=state.requirements;
  function save(e:FormEvent<HTMLFormElement>){e.preventDefault();const f=new FormData(e.currentTarget);const str=(k:string)=>String(f.get(k)??'');const num=(k:string)=>str(k)===''?null:Number(str(k));
@@ -32,7 +45,7 @@ export function PreferencesForm(){
  <label htmlFor="zip">Delivery ZIP code</label><input id="zip" name="zip" required pattern="[0-9]{5}" maxLength={5} autoComplete="postal-code" defaultValue={r.zip}/>
  <label htmlFor="mode">Which matters most to you? (Recommendation mode)</label><select id="mode" name="mode" defaultValue={r.mode}><option value="budget">Budget Mode — lowest full cost</option><option value="technical">Best Technical Solution — port speed headroom, within budget</option></select>
  <label className="choice"><input name="installation" type="checkbox" defaultChecked={r.installation}/>Include installation</label>
- <p>All dates and intervals use New York time (America/New_York). Tomorrow relative to this demo session: {localDate(state.catalogTime,1)}. Delivery and installation deadlines are separate.</p>
+ <p>All dates and intervals use New York time (America/New_York). Tomorrow relative to this demo session: {localDate(state.catalogTime,1)}. Earliest express test delivery date: {localDate(demoScheduleAnchor(state.catalogTime),1)}. Sessions created at or after 23:00 start processing on the next New York calendar day. Delivery and installation deadlines are separate; your dates are never moved automatically.</p>
  <label htmlFor="deliveryDate">Deliver by (end of day)</label><input type="date" id="deliveryDate" name="deliveryDate" defaultValue={r.deliveryDate??''}/><label className="choice"><input type="checkbox" name="deliveryMandatory" defaultChecked={r.deliveryMandatory}/>Delivery deadline is mandatory</label>
  <label htmlFor="installationDate">Finish installation by (end of day)</label><input type="date" id="installationDate" name="installationDate" defaultValue={r.installationDate??''}/><label className="choice"><input type="checkbox" name="installationMandatory" defaultChecked={r.installationMandatory}/>Installation deadline is mandatory</label>
  <h2>2. Your current connection</h2><p>Supported MVP: a separate modem or optical terminal stays in place and provides Ethernet to the new router. Ask your provider if you are unsure. Do not enter passwords.</p>

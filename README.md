@@ -23,7 +23,7 @@ Version 1 stored every form field as edited. Migration preserves requirements, a
 
 ## Test scenario
 
-Use $150 / USD, ZIP 10001, Budget Mode, installation included. Set delivery and installation completion to tomorrow as displayed in New York time; mark both mandatory. For this TEST only: retained ONT, Ethernet yes, Automatic/DHCP, no VLAN or other provider requirements, minimum port speed 1000 Mbps, 2 wired devices, required 5 GHz band, include $5 cable. Confirm technical answers and save.
+Use $150 / USD, ZIP 10001, Budget Mode, installation included. Set delivery and installation completion to the earliest express test delivery date displayed in Preferences; mark both mandatory. Before 23:00 New York time this is tomorrow; at/after 23:00 processing rolls to the next calendar day, so earliest delivery is the day after tomorrow. For this TEST only: retained ONT, Ethernet yes, Automatic/DHCP, no VLAN or other provider requirements, minimum port speed 1000 Mbps, 2 wired devices, required 5 GHz band, include $5 cable. Confirm technical answers and save.
 
 Expected: Demo Metro Tech / Alex = $135.16 (74 router + 10 delivery + 5 cable + 35 installation + 11.16 TEST tax). Delivery noon, installation 14:00–15:00 New York time. Sam is another option at $146.06 with a later interval. Choose a solution, refresh, verify it persists. Set $50: no complete solutions. Restore $150 and choose unknown connection method: verification-only options, with plain instructions.
 
@@ -57,3 +57,5 @@ Public-service acceptance is pending until real credentials, a deployment hostna
 - tests: state, engine, API/errors, protection, UI journey and accessibility
 
 Final local audit: docs/LOCAL_AUDIT_STAGE4.md. Public service onboarding and deployment are deliberately deferred by the user; existing protection remains in place.
+
+Code review follow-up on b71564b: refreshed test schedules use the next processing day after the 23:00 New York cutoff. COMPATIBLE is based on user-confirmed answers and fictional catalog specs, not independent certification. AI question-topic links open the corresponding Preferences field, including Advanced Settings.

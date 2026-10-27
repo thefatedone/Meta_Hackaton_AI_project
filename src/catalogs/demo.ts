@@ -1,5 +1,5 @@
 import type { Catalog } from '../recommendations/engine';
-import { localInstant, DEMO_ZONE } from '../recommendations/time';
+import { localInstant, demoScheduleAnchor, demoOrderCutoff, DEMO_ZONE } from '../recommendations/time';
 import type { Product, Seller, Offer, Technician } from '@/domain/models';
 // All names, specifications, prices and availability below are fictional fixtures.
 export const sellers: Seller[] = [
@@ -24,9 +24,10 @@ export const technicians: Technician[] = [
 
 // Dates are generated relative to one session anchor, using New York calendar days.
 export function createDemoCatalog(now: string): Catalog {
+ const scheduleAnchor=demoScheduleAnchor(now);
  return structuredClone({ generatedAt: now, products, sellers,
- offers: offers.map(offer=>({...offer, deliveryOptions:offer.deliveryOptions.map(d=>({...d, arrivesAt:localInstant(now,d.estimatedDays,12), orderBy:localInstant(now,0,23)}))})),
- technicians:technicians.map((t,index)=>({...t,slots:[1,2,3].map(day=>({id:t.id+'-day-'+day,startsAt:localInstant(now,day,index===0?14:16),endsAt:localInstant(now,day,index===0?15:17),timeZone:DEMO_ZONE}))})),
+ offers: offers.map(offer=>({...offer, deliveryOptions:offer.deliveryOptions.map(d=>({...d, arrivesAt:localInstant(scheduleAnchor,d.estimatedDays,12), orderBy:demoOrderCutoff(now)}))})),
+ technicians:technicians.map((t,index)=>({...t,slots:[1,2,3].map(day=>({id:t.id+'-day-'+day,startsAt:localInstant(scheduleAnchor,day,index===0?14:16),endsAt:localInstant(scheduleAnchor,day,index===0?15:17),timeZone:DEMO_ZONE}))})),
  accessories:[{id:'ethernet-cable',name:'Demo Ethernet cable',price:{amountCents:500,currency:'USD'},isDemo:true}],
  tax:{zip:'10001',rateBasisPoints:900,label:'TEST tax: 9% of all line items (fictional)',isDemo:true}
  });
